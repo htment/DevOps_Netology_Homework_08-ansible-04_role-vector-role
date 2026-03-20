@@ -1,0 +1,15 @@
+---
+# vars file for vector
+---
+# Системные переменные (не рекомендуется переопределять)
+
+# URL для скачивания пакетов
+vector_package_url_deb: "https://packages.timber.io/vector/{{ vector_version }}/vector-{{ vector_version }}-amd64.deb"
+vector_package_url_rpm: "https://packages.timber.io/vector/{{ vector_version }}/vector-{{ vector_version }}-1.x86_64.rpm"
+
+# Путь к сервисному файлу
+vector_service_file: /etc/systemd/system/vector.service
+
+# Конфигурация по умолчанию для разных ОС
+vector_default_config:
+  data_dir: "{{ vector_data_dir }}"

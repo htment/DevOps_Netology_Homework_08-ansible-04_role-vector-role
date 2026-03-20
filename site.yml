@@ -1,0 +1,18 @@
+- hosts: all
+  roles:
+    - role: ansible-vector-role
+      vars:
+        vector_version: "0.31.0"
+        vector_config:
+          sources:
+            file_logs:
+              type: file
+              include:
+                - /var/log/*.log
+          sinks:
+            console:
+              type: console
+              inputs:
+                - file_logs
+              encoding:
+                codec: json

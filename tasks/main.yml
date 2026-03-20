@@ -1,0 +1,90 @@
+---
+# tasks file for vector
+---
+- name: Include OS-specific variables
+  include_vars: "{{ ansible_os_family }}.yml"
+  ignore_errors: yes
+
+- name: Create vector group
+  group:
+    name: "{{ vector_group }}"
+    system: true
+    state: present
+  when: vector_create_group
+
+- name: Create vector user
+  user:
+    name: "{{ vector_user }}"
+    group: "{{ vector_group }}"
+    system: true
+    shell: /sbin/nologin
+    create_home: false
+  when: vector_create_user
+
+- name: Set package URL based on OS
+  set_fact:
+    vector_package_url: "{{ vector_package_url_deb if ansible_os_family == 'Debian' else vector_package_url_rpm }}"
+
+- name: Download vector package
+  get_url:
+    url: "{{ vector_package_url }}"
+    dest: "/tmp/vector-{{ vector_version }}{{ '.deb' if ansible_os_family == 'Debian' else '.rpm' }}"
+    mode: '0755'
+    timeout: 120
+  register: download_vector
+
+- name: Install vector package (Debian)
+  apt:
+    deb: "/tmp/vector-{{ vector_version }}.deb"
+    state: present
+  when: 
+    - download_vector.changed or not vector_already_installed | default(false)
+    - ansible_os_family == "Debian"
+
+- name: Install vector package (RedHat)
+  yum:
+    name: "/tmp/vector-{{ vector_version }}.rpm"
+    state: present
+  when: 
+    - download_vector.changed or not vector_already_installed | default(false)
+    - ansible_os_family == "RedHat"
+
+- name: Create vector directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ vector_user }}"
+    group: "{{ vector_group }}"
+    mode: '0755'
+  loop:
+    - "{{ vector_config_dir }}"
+    - "{{ vector_data_dir }}"
+    - "{{ vector_log_dir }}"
+
+- name: Deploy vector configuration
+  template:
+    src: vector.yaml.j2
+    dest: "{{ vector_config_dir }}/vector.yaml"
+    owner: "{{ vector_user }}"
+    group: "{{ vector_group }}"
+    mode: '0644'
+  notify: restart vector
+
+- name: Ensure vector service is enabled and running
+  systemd:
+    name: vector
+    state: "{{ vector_service_state }}"
+    enabled: "{{ vector_service_enabled }}"
+    daemon_reload: true
+  register: vector_service_result
+
+- name: Check if vector is installed
+  command: vector --version
+  register: vector_version_check
+  changed_when: false
+  ignore_errors: true
+  failed_when: false
+
+- name: Set fact for vector installation status
+  set_fact:
+    vector_already_installed: "{{ vector_version_check.rc == 0 }}"

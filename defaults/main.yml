@@ -1,0 +1,32 @@
+---
+# Версия Vector
+vector_version: "0.30.0"
+
+# Пользователь и группа
+vector_user: vector
+vector_group: vector
+vector_create_user: true
+vector_create_group: true
+
+# Директории
+vector_config_dir: /etc/vector
+vector_data_dir: /var/lib/vector
+vector_log_dir: /var/log/vector
+
+# Настройки сервиса
+vector_service_enabled: true
+vector_service_state: started
+
+# Конфигурация Vector (будет объединена с шаблоном)
+vector_config:
+  sources:
+    internal_metrics:
+      type: internal_metrics
+      scrape_interval_secs: 15
+  sinks:
+    console:
+      type: console
+      inputs:
+        - internal_metrics
+      encoding:
+        codec: json
